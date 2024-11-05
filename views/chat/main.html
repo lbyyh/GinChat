@@ -1,0 +1,468 @@
+{{define "main.html"}}
+<link rel="stylesheet" href="/asset/css/style.css">
+<link rel="stylesheet" href="/asset/css/chat.css">
+<div class="chat-header">
+    <div class="back-arrow">&#x2190;</div> <!-- 返回图标保持不变 -->
+    <div class="chat-title"></div> <!-- 用于显示聊天标题的容器 -->
+</div>
+<div class="chat-messages" id="chat-messages">
+    <!-- 聊天记录动态填充区域 -->
+</div>
+<div class="chat-input-area">
+    <input type="file" id="imageInput" hidden />
+    <button id="emojiBtn">😊</button>
+    <!-- 表情包容器 -->
+    <div class="emoji-picker" id="emojiPicker" style="display: none;">
+        <!-- 表情包项将被JS动态填充 -->
+    </div>
+    <button id="toggleInputModeBtn">🎤</button> <!-- 添加切换模式按钮 -->
+    <div id="textMode" class="input-mode">
+        <input type="text" id="messageInput" placeholder="输入消息...">
+        <button id="sendBtn">发送</button>
+        <button id="plusBtn">＋</button>
+    </div>
+    <div id="voiceMode" class="input-mode" style="display: none;">
+        <button id="voiceInputBtn" class="hold-to-record">长按录音</button>
+        <span id="recordingIndicator" style="display: none;">录音中...</span>
+    </div>
+    <div class="extra-options" id="extraOptions" style="display: none;"> <!-- 附加功能面板 -->
+        <!--        <button id="voiceInputBtn">🎤</button> &lt;!&ndash; 语音输入图标 &ndash;&gt;-->
+        <button id="imageBtn">📷</button> <!-- 移动相册键图标到这里 -->
+    </div>
+</div>
+<script>
+    let socket = null;
+    let mediaRecorder; // 全局MediaRecorder实例
+    let isMicPermissionsGranted = false; // 是否已经获得麦克风权限
+
+    // 解析URL参数获取 userId 和 friendName
+    const userId = new URLSearchParams(window.location.search).get('userId');
+    const friendId = new URLSearchParams(window.location.search).get('friendId');
+    const friendName = decodeURIComponent(new URLSearchParams(window.location.search).get('friendName') || '');
+
+
+    document.addEventListener('DOMContentLoaded', function() {
+        //申请麦克风权限
+        requestMicrophoneAccess()
+
+        // 设置好友名
+        document.querySelector('.chat-title').innerText = friendName ? `与 ${friendName} 聊天中` : "聊天";
+
+        // 初始化WebSocket
+        initializeWebSocket();
+
+        // 绑定发送按钮事件
+        document.getElementById('sendBtn').addEventListener('click', sendTextMessage);
+
+        // 为返回图标绑定点击事件
+        document.querySelector('.back-arrow').addEventListener('click', function() {
+            window.history.back();
+        });
+
+        //加载最近消息
+        loadRecentMessages();
+
+        const emojiBtn = document.getElementById('emojiBtn');
+        const emojiPicker = document.getElementById('emojiPicker');
+
+        // 模拟的表情数据
+        const emojis = [
+            "😀", "😁", "😂", "🤣", "😃", "😄", "😅", "😆",
+            "😉", "😊", "😋", "😎", "😍", "😘", "🥰", "😗",
+            "😙", "😚", "🥲", "😛", "😜", "😝", "🤑", "🤗",
+            "🤭", "🤫", "🤔", "🤐", "🥸", "😠", "😡", "🤯",
+            "😤", "😠", "😈", "👿", "💀", "☠️", "😇", "🥳",
+            "🥴", "😌", "😔", "😞", "🤕", "🤒", "😟", "😢",
+            "😭", "😦", "😧", "😮", "😯", "😲", "😵", "😵‍💫",
+            "😳", "🥺", "😴", "😷", "🤒", "🤕", "🤢", "🤮",
+            "🤧", "🥵", "🥶", "😱", "😨", "😰", "😥", "😓",
+            "😬", "😩", "😫", "🥄", "🍴", "🔪", "🥣", "🍽️",
+            "🍳", "🍲", "🍱", "🍘", "🍙", "🍚", "🍛", "🍜",
+            "🍝", "🍞", "🍌", "🍉", "🍇", "🍓", "🍈", "🍒"
+        ];
+
+        emojis.forEach(emojiChar => {
+            const emoji = document.createElement('div');
+            emoji.textContent = emojiChar;
+            emoji.classList.add('emoji');
+            emojiPicker.appendChild(emoji);
+
+            emoji.addEventListener('click', () => {
+                const messageInput = document.getElementById('messageInput');
+                messageInput.value += emojiChar; // 将表情字符添加到输入框
+                emojiPicker.style.display = 'none'; // 选择后隐藏表情面板
+            });
+        });
+
+        emojiBtn.addEventListener('click', () => {
+            emojiPicker.style.display = emojiPicker.style.display === 'none' ? 'flex' : 'none';
+        });
+
+        // 图片上传
+        document.getElementById('imageBtn').addEventListener('click', function() {
+            document.getElementById('imageInput').click(); // 触发文件选择
+        });
+
+        document.getElementById('imageInput').addEventListener('change', handleImageUpload);
+
+        // 添加加号按钮的点击事件监听
+        document.getElementById('plusBtn').addEventListener('click', function() {
+            const optionsPanel = document.getElementById('extraOptions');
+            optionsPanel.style.display = optionsPanel.style.display === 'none' ? 'flex' : 'none'; // 切换面板的显示状态
+        });
+
+        // 初始化变量
+        const voiceInputBtn = document.getElementById('voiceInputBtn');
+
+        // 切换文本输入和语音输入模式的逻辑
+        document.getElementById('toggleInputModeBtn').addEventListener('click', function() {
+            const textMode = document.getElementById('textMode');
+            const voiceMode = document.getElementById('voiceMode');
+            textMode.style.display = (textMode.style.display === 'none') ? 'block' : 'none';
+            voiceMode.style.display = (textMode.style.display === 'block') ? 'none' : 'block';
+        });
+
+        // 事件：开始录音
+        voiceInputBtn.addEventListener('mousedown', prepareRecording);
+        voiceInputBtn.addEventListener('touchstart', prepareRecording);
+
+
+
+
+
+
+    });
+
+    // 处理录音准备工作
+    function prepareRecording() {
+        navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(stream => {
+                startRecording(stream);
+            })
+            .catch(error => {
+                console.error('Error accessing media devices.', error);
+                alert('录音权限被拒绝或设备无法访问。请允许录音权限，并确保设备正常。');
+            });
+    }
+
+    // 开始录音
+    function startRecording(stream) {
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+
+        voiceInputBtn.classList.add('recording');
+        recordingIndicator.style.display = 'inline';
+
+        mediaRecorder.start();
+        mediaRecorder.addEventListener('dataavailable', event => {
+            audioChunks.push(event.data);
+        });
+
+        // 为“mouseup”和“touchend”事件添加一次性监听器以停止录音
+        ['mouseup', 'touchend'].forEach(event => {
+            voiceInputBtn.addEventListener(event, stopAndSendRecording, { once: true });
+        });
+    }
+
+    // 函数定义：停止录音并上传
+    function stopAndSendRecording() {
+        voiceInputBtn.classList.remove('recording');
+        recordingIndicator.style.display = 'none';
+
+        if (mediaRecorder) {
+            mediaRecorder.stop();
+            mediaRecorder.addEventListener('stop', () => {
+                const audioBlob = new Blob(audioChunks);
+                uploadAndSendAudio(audioBlob);
+            });
+        }
+    }
+
+    //初始化并打开WebSocket连接
+    function initializeWebSocket() {
+        const socketUrl = 'ws://127.0.0.1:8081/user/sendUserMsg?userId=' + userId;
+        socket = new WebSocket(socketUrl);
+        socket.onopen = function() {
+            console.log('WebSocket连接已打开');
+        };
+
+        socket.onmessage = function(event) {
+            const message = JSON.parse(event.data);
+            // 确认消息是否为当前用户或当前朋友所发送
+            if ((message.FormId.toString() === userId.toString() && message.TargetId.toString() === friendId.toString()) ||
+                (message.FormId.toString() === friendId.toString() && message.TargetId.toString() === userId.toString())) {
+                displayMessage(message);
+            }
+        };
+
+        socket.onclose = function() {
+            console.log('WebSocket连接已关闭');
+        };
+
+        socket.onerror = function(error) {
+            console.error('WebSocket发生错误:', error);
+        };
+
+    }
+
+
+
+    //发送文本消息
+    function sendTextMessage() {
+        const messageInput = document.getElementById('messageInput');
+        const messageContent = messageInput.value.trim();
+
+        if (messageContent && socket) {
+            const message = {
+                FormId: parseInt(userId),
+                TargetId: parseInt(friendId),
+                Type: 1,
+                Media: 1,
+                Content: messageContent
+            };
+
+            displayMessage({
+                ...message,
+                FormId: parseInt(userId)
+            });
+
+            socket.send(JSON.stringify(message));
+
+            // 同时发送到后端 MongoDB
+            saveMessageToServer(message);
+
+            messageInput.value = '';
+        }
+    }
+
+    //发送的图片上传
+    function handleImageUpload(event) {
+        const file = event.target.files[0];
+
+        if (file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/attach/upload', {
+                method: 'POST',
+                body: formData,
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('上传成功', data);
+                    // 根据返回数据构建图片消息对象
+                    const message = {
+                        FormId: parseInt(userId),
+                        TargetId: parseInt(friendId),
+                        Type: 1,  // 1 通常被用来表示私聊，这里按您的应用逻辑设置
+                        Media: 3, // 2 代表图片类型
+                        Content: data.url // 使用服务器提供的图片URL
+                    };
+
+                    // 在本地聊天框显示图片消息
+                    displayMessage({
+                        ...message,
+                        FormId: parseInt(userId)
+                    });
+
+                    // 通过 WebSocket 发送图片消息到其他客户端
+                    if (socket && socket.readyState === WebSocket.OPEN) {
+                        socket.send(JSON.stringify(message));
+                    }
+
+                    // 调用函数，保存图片消息到服务器
+                    saveMessageToServer(message);
+                })
+                .catch(error => {
+                    console.error('上传失败:', error);
+                });
+        }
+    }
+
+    //聊天框消息显示
+    function displayMessage(message) {
+        const chatMessages = document.getElementById('chat-messages');
+        const messageContainer = document.createElement('div');
+        messageContainer.classList.add('message-container');
+
+        const avatarImg = document.createElement('img');
+        avatarImg.src = "/path/to/default-avatar.png"; // 用户的默认头像路径
+        avatarImg.classList.add('contact-avatar');
+
+        const messageContentDiv = document.createElement('div');
+        messageContentDiv.classList.add('message-content');
+
+        switch (message.Media) {
+            case 1: // 文字消息
+                messageContentDiv.textContent = message.Content;
+                break;
+            case 2: // 表情消息
+                messageContentDiv.textContent = message.Content;
+                break;
+            case 3: // 图片消息
+                const img = document.createElement('img');
+                img.src = message.Content;
+                img.classList.add('chat-img');
+                messageContentDiv.appendChild(img);
+                break;
+            case 4:
+                const voiceContainer = document.createElement('div');
+                voiceContainer.classList.add('voice-message-card');
+
+                if (message.FormId.toString() === userId) {
+                    voiceContainer.classList.add('my-message');
+                } else {
+                    voiceContainer.classList.add('friend-message');
+                }
+
+                const audio = document.createElement('audio');
+                audio.src = message.Content;
+                audio.controls = false; // 隐藏默认控件
+                audio.onplay = function() {
+                    voiceContainer.classList.add('voice-message-playing');
+                };
+                audio.onpause = function() {
+                    voiceContainer.classList.remove('voice-message-playing');
+                };
+
+                const controls = document.createElement('div');
+                controls.classList.add('voice-message-controls');
+                // const playIcon = document.createElement('span');
+                // controls.appendChild(playIcon);
+
+                const duration = document.createElement('span');
+                duration.classList.add('voice-message-duration');
+                duration.textContent = message.Duration; // 假设Duration是格式化好的字符串
+
+                voiceContainer.appendChild(audio);
+                voiceContainer.appendChild(controls);
+                voiceContainer.appendChild(duration);
+                messageContentDiv.appendChild(voiceContainer);
+                break;
+            // 增加其它消息类型逻辑
+        }
+
+        // 应用语音消息样式
+        if (message.Media === 4) {
+            const audioElement = document.createElement('audio');
+            audioElement.src = message.Content; // 设置音频来源为上传后的URL
+            audioElement.controls = true; // 允许用户控制播放
+            audioElement.classList.add('voice-message'); // 应用自定义样式（如果有）
+
+            messageContentDiv.appendChild(audioElement);
+        }
+
+        // 组合消息容器
+        if (message.FormId.toString() === userId) {
+            messageContainer.classList.add('my-message');
+            messageContainer.appendChild(messageContentDiv);
+            messageContainer.appendChild(avatarImg);
+        } else {
+            messageContainer.classList.add('friend-message');
+            messageContainer.appendChild(avatarImg);
+            messageContainer.appendChild(messageContentDiv);
+        }
+
+        chatMessages.appendChild(messageContainer);
+        chatMessages.scrollTop = chatMessages.scrollHeight; // 自动滚动到最新消息
+
+    }
+
+    //申请麦克风权限
+    function requestMicrophoneAccess() {
+        navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(stream => {
+                // 在获得权限后，创建MediaRecorder实例，但不立即开始录音
+                mediaRecorder = new MediaRecorder(stream);
+                isMicPermissionsGranted = true;
+                console.log("麦克风访问已授权。");
+
+                // 可选：如果你不需要立即使用流，可以这样关闭它。
+                stream.getTracks().forEach(track => track.stop());
+            })
+            .catch(error => {
+                console.error('麦克风访问错误:', error);
+                isMicPermissionsGranted = false;
+            });
+    }
+
+    // 函数定义：上传音频文件并发送
+    function uploadAndSendAudio(audioBlob) {
+        const formData = new FormData();
+        formData.append('audio', audioBlob);
+
+        fetch('/user/audioUploadHandler', {
+            method: 'POST',
+            body: formData,
+        })
+            .then(response => response.json())
+            .then(data => {
+                if(data.url) {
+                    // 构建语音消息对象
+                    const audioMessage = {
+                        FormId: parseInt(userId),
+                        TargetId: parseInt(friendId),
+                        Type: 1, // 1 代表私聊类型或者根据你应用的逻辑
+                        Media: 4, // 4 表示这是一个音频消息
+                        Content: data.url, // 使用服务器提供的音频URL
+                        Duration: data.duration, // 使用服务器返回的音频持续时间
+                    };
+
+                    // 发送语音消息至WebSocket
+                    if (socket && socket.readyState === WebSocket.OPEN) {
+                        socket.send(JSON.stringify(audioMessage));
+                    }
+
+                    // 保存语音消息到服务器
+                    saveMessageToServer(audioMessage);
+
+                    // 可选：本地UI显示消息
+                    displayMessage(audioMessage);
+                } else {
+                    console.error("音频上传失败: 服务器未返回音频URL");
+                }
+            })
+            .catch(error => console.error('Failed to upload audio:', error));
+    }
+
+    //加载最近消息
+    function loadRecentMessages() {
+        const userId = new URLSearchParams(window.location.search).get('userId');
+        const targetId = new URLSearchParams(window.location.search).get('friendId');
+
+        fetch(`/contact/getRecentMessages?userId=${userId}&targetId=${targetId}`)
+            .then(response => response.json())
+            .then(data => {
+                if(data && data.length) {
+                    data.forEach(message => {
+                        displayMessage(message); // 假设displayMessage函数可以正确显示消息
+                    });
+                    // 确保滚动到最底部，显示最新消息
+                    const chatMessages = document.getElementById('chat-messages');
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+            })
+            .catch(error => console.error('加载最近消息失败:', error));
+    }
+
+    //保存消息到服务器
+    function saveMessageToServer(message) {
+        fetch('/contact/saveMessage', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(message)
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.Code !== 0) {
+                    console.error('消息保存失败:', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('发送消息保存请求失败:', error);
+            });
+    }
+</script>
+{{end}}

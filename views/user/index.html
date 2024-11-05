@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>聊天室登录</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+
+        .login-container {
+            width: 300px;
+            padding: 40px;
+            background-color: #ffffff;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .login-container h2 {
+            margin-bottom: 30px;
+            color: #333;
+            font-size: 24px;
+        }
+
+        .login-container input[type="text"],
+        .login-container input[type="password"] {
+            width: calc(100% - 20px);
+            padding: 12px 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            box-sizing: border-box;
+        }
+
+        .login-container button {
+            width: 100%;
+            padding: 10px;
+            background-color: #1e90ff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        .login-container button:hover {
+            background-color: #5599ff;
+        }
+
+        .login-container .link {
+            display: block;
+            margin: 15px 0;
+            font-size: 14px;
+            text-decoration: none;
+            color: #1e90ff;
+        }
+
+        .login-container .link:hover {
+            text-decoration: underline;
+        }
+
+        .error-message {
+            color: red;
+            display: none;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+<div class="login-container">
+    <h2>聊天室登录</h2>
+    <div class="error-message" id="error-message">无效的用户名或密码！</div>
+    <input type="text" id="username" placeholder="用户名" autofocus />
+    <input type="password" id="password" placeholder="密码" />
+    <button onclick="login()">登录</button>
+    <a href="/toRegister" class="link">注册账号</a>
+    <a href="forgot_password.html" class="link">忘记密码？</a>
+</div>
+
+<script>
+    function login() {
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const errorMsg = document.getElementById('error-message');
+
+        // 验证输入是否为空
+        if (username === "" || password === "") {
+            errorMsg.style.display = 'block';
+            errorMsg.innerText = '用户名和密码不能为空！';
+            return;
+        }
+
+        // 发送登录请求到后端
+        fetch('/user/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                name: username,
+                password: password,
+            }),
+        })
+            .then(response => response.json())
+            .then(data => {
+                console.log("data------",data)
+                console.log("data.user------",data.user)
+                if (data.code === 0) {
+                    // 登录成功，跳转到聊天页面
+                    window.location.href = "/toChat?userId=" + data.data.ID + "&token=" + data.data.Identity;
+                } else {
+                    // 登录失败，显示错误信息
+                    errorMsg.style.display = 'block';
+                    errorMsg.innerText = data.message;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                errorMsg.style.display = 'block';
+                errorMsg.innerText = '登录请求失败，请稍后再试';
+            });
+    }
+</script>
+</body>
+</html>

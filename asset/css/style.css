@@ -1,0 +1,142 @@
+/* 通用样式 */
+body, html {
+    margin: 0;
+    padding: 0;
+    font-family: 'Arial', sans-serif;
+    background-color: #EDEFF2;
+    height: 100%;
+    font-size: 14px;
+}
+
+/* 隐藏所有主要部分，通过JS控制显示 */
+.container > div {
+    display: none;
+}
+
+/* 底部导航栏样式 */
+.bottom-nav {
+    display: flex;
+    justify-content: space-around;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background-color: #ffffff;
+    box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+    padding: 10px 0;
+}
+
+.nav-item {
+    text-align: center;
+    color: #555;
+    text-decoration: none;
+}
+
+.nav-item i {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 20px;
+    color: #555;
+}
+
+.nav-item span {
+    display: block;
+    font-size: 12px;
+    color: #555;
+}
+
+/* 好友列表和群聊列表共通样式 */
+.contacts, .groups {
+    display: none;
+    padding: 60px 10px 80px;
+}
+
+.contact-item, .group-item {
+    background-color: #fff;
+    margin-bottom: 1px;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+}
+
+.contact-item img, .group-item img {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    margin-right: 10px;
+}
+
+.contact-name, .group-name {
+    font-weight: bold;
+    color: #333;
+}
+
+/* 个人中心样式 */
+.profile {
+    display: none;
+    padding: 60px 20px 80px;
+}
+
+.profile-info {
+    margin-bottom: 20px;
+}
+
+.profile-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    margin: 0 auto;
+    display: block;
+}
+
+.profile-name {
+    font-size: 18px;
+    font-weight: bold;
+    text-align: center;
+    margin: 10px 0;
+}
+
+.profile-actions button {
+    display: block;
+    width: 90%;
+    padding: 10px;
+    margin: 10px auto;
+    background-color: #1E90FF;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+}
+
+.profile-actions button:hover {
+    background-color: #5599FF;
+}
+
+/* 底部 */
+.footer {
+    text-align: center;
+    font-size: 12px;
+    color: #aaa;
+}
+
+/* 在 /asset/css/style.css 文件中 */
+.contact-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    margin-bottom: 10px;
+    background-color: #fff;
+    border-radius: 5px;
+}
+
+.contact-item img {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    margin-right: 15px;
+}
+
+.contact-name {
+    font-size: 16px;
+    font-weight: bold;
+}
+

@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="/asset/css/style.css">
+    <style>
+        /* 遮罩层样式 */
+        .modal {
+            display: none; /* 隐藏 */
+            position: fixed; /* 固定定位 */
+            z-index: 1; /* 高优先级 */
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto; /* 如果内容溢出，滚动 */
+            background-color: rgb(0, 0, 0); /* 黑色背景 */
+            background-color: rgba(0, 0, 0, 0.4); /* 带透明效果 */
+        }
+
+        /* 模态框内容样式 */
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto; /* 15%顶部边距，居中显示 */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%; /* 宽度 */
+            max-width: 300px; /* 最大宽度 */
+            border-radius: 10px;
+        }
+
+        /* 关闭按钮样式 */
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="file"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+
+        /* 你可能需要根据实际情况调整以上样式 */
+    </style>
+</head>
+<body>
+<div class="profile" id="profile">
+    <div class="profile-info">
+        <img src="/path/to/my-avatar.png" alt="My Avatar">
+        <div class="profile-name">My Name</div>
+    </div>
+    <div class="profile-actions">
+        <button id="addFriendBtn">添加好友</button>
+        <button id="joinGroupBtn">加入群聊</button>
+        <button id="createCommunityBtn">创建群聊</button>
+    </div>
+</div>
+
+<!-- 模态框 -->
+<div id="addFriendModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>添加好友</h2>
+        <label for="friendIdInput">好友ID:</label>
+        <input type="text" id="friendIdInput" placeholder="输入好友ID">
+        <button id="confirmAddFriendBtn">添加</button>
+    </div>
+</div>
+
+<!-- 创建群聊模态框 -->
+<div id="createCommunityModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>创建群聊</h2>
+        <form id="createCommunityForm">
+            <div class="form-group">
+                <label for="communityNameInput">群聊名称:</label>
+                <input type="text" id="communityNameInput" placeholder="输入群聊名" required>
+            </div>
+            <div class="form-group">
+                <label for="communityDescInput">群简介:</label>
+                <input type="text" id="communityDescInput" placeholder="输入群简介">
+            </div>
+            <div class="form-group">
+                <label for="communityAvatarInput">群聊头像:</label>
+                <input type="file" id="communityAvatarInput" accept="image/*">
+            </div>
+            <button type="submit">创建</button>
+        </form>
+    </div>
+</div>
+
+
+<!-- 加入群聊模态框 -->
+<div id="joinGroupModal" class="modal">
+    <div class="modal-content">
+        <span class="close join-close">&times;</span>
+        <h2>加入群聊</h2>
+        <input type="text" id="groupInput" placeholder="输入群聊ID或名称">  <!-- 注意这里修改了id和placeholder -->
+        <button id="confirmJoinGroupBtn">加入</button>
+    </div>
+</div>
+
+<script>
+    // 获得模态框
+    var modal = document.getElementById("addFriendModal");
+    var modal1 = document.getElementById("createCommunityModal");
+
+    // 获得按钮，绑定点击事件打开模态框
+    var btn = document.getElementById("addFriendBtn");
+    btn.onclick = function () {
+        modal.style.display = "block";
+    }
+    // 获得按钮，绑定点击事件打开模态框
+    var btn1 = document.getElementById("createCommunityBtn");
+    btn1.onclick = function () {
+        modal1.style.display = "block";
+    }
+
+    // 获得 <span> 元素，绑定点击事件关闭模态框
+    var span = document.getElementsByClassName("close")[0];
+    span.onclick = function () {
+        modal.style.display = "none";
+    }
+
+    // 点击模态框外部关闭模态框
+    window.onclick = function (event) {
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    }
+
+    // 绑定添加好友事件
+    document.getElementById('confirmAddFriendBtn').addEventListener('click', function () {
+        var friendId = document.getElementById('friendIdInput').value;
+        if (friendId) {
+            addFriend(friendId);
+        } else {
+            alert("请输入好友ID");
+        }
+    });
+
+    function addFriend(friendId) {
+        var userId = new URLSearchParams(window.location.search).get('userId');
+
+        fetch('/user/addFriend', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({
+                userId: userId,
+                targetId: friendId
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.Code == 0) {
+                    alert("添加成功");
+                    modal.style.display = "none";
+                } else {
+                    alert("添加失败：" + data.Msg);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert("添加好友时发生错误，请稍后重试。");
+            });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // 配置创建群聊模态框的打开与关闭
+        document.getElementById("createCommunityModal").querySelector(".close").onclick = function () {
+            closeModal("createCommunityModal");
+        };
+
+        // 创建群聊表单提交事件
+        document.getElementById('createCommunityForm').onsubmit = function (e) {
+            e.preventDefault(); // 阻止表单默认提交行为
+            createCommunity();
+        };
+
+
+        // 配置加入群聊模态框的打开与关闭
+        document.getElementById("joinGroupBtn").onclick = function () {
+            document.getElementById("joinGroupModal").style.display = "block";
+        };
+
+        document.querySelectorAll('.join-close').forEach(function(element) {
+            element.onclick = function () {
+                document.getElementById("joinGroupModal").style.display = "none";
+            };
+        });
+
+        // 点击模态框外部关闭模态框
+        window.onclick = function (event) {
+            if (event.target == document.getElementById("joinGroupModal")) {
+                document.getElementById("joinGroupModal").style.display = "none";
+            }
+        };
+
+    });
+
+    // 关闭模态框的函数
+    function closeModal(modalId) {
+        var modal = document.getElementById(modalId);
+        modal.style.display = "none";
+    }
+
+    // 创建群聊的函数
+    function createCommunity() {
+        var ownerId = new URLSearchParams(window.location.search).get('userId');
+        var communityName = document.getElementById('communityNameInput').value;
+        var communityDesc = document.getElementById('communityDescInput').value;
+        var avatarFile = document.getElementById('communityAvatarInput').files[0];
+
+        var formData = new FormData();
+        formData.append('ownerId', ownerId);
+        formData.append('name', communityName);
+        formData.append('description', communityDesc);
+        formData.append('avatar', avatarFile);
+
+        fetch('/user/createCommunity', {
+            method: 'POST',
+            body: formData,
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.Code == 0) {
+                    alert("创建成功");
+                    closeModal("createCommunityModal");
+                } else {
+                    alert("创建失败：" + data.msg);
+                }
+            })
+            .catch(error => {
+                console.error('创建群聊时发生错误:', error);
+                alert("创建群聊时发生错误，请稍后重试。");
+            });
+    }
+
+
+    // 绑定加入群聊事件
+    document.getElementById('confirmJoinGroupBtn').addEventListener('click', function () {
+        joinGroup();
+    });
+
+    // 创建加入群聊的函数
+    function joinGroup() {
+        var userId = new URLSearchParams(window.location.search).get('userId');
+        var groupInfo = document.getElementById('groupInput').value;
+
+        if (groupInfo) {
+            // 根据实现情况，这里可能需要向后端发送群聊ID或名称
+            fetch('/user/addGroup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    userId: userId,
+                    groupInfo: groupInfo, // 服务器需要区分这是ID还是名称
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.Code === 1 || data.Code === 0) {
+                        alert("加入成功");
+                        document.getElementById("joinGroupModal").style.display = "none";
+                    } else {
+                        alert("加入失败：" + data.Msg);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert("加入群聊时发生错误，请稍后重试。");
+                });
+        } else {
+            alert("请输入群聊ID或名称");
+        }
+    }
+</script>
+</body>
+</html>

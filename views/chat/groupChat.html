@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html>
+<link rel="stylesheet" href="/asset/css/chat.css">
+<head>
+    <style>
+        /* 聊天消息的通用样式 */
+        .message-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        /* 接收到的消息（头像靠左） */
+        .friend-message .contact-avatar {
+            margin-right: 10px;
+        }
+
+        /* 发送的消息（头像靠右） */
+        .my-message {
+            justify-content: flex-end;
+        }
+
+        .my-message .contact-avatar {
+            margin-left: 10px;
+            order: 2; /* 将头像移动到内容的右边 */
+        }
+
+        .my-message .message-content {
+            order: 1; /* 确保消息内容在头像的左边 */
+        }
+
+        .contact-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 20px; /* 圆形头像 */
+        }
+
+        .message-content {
+            max-width: 60%;
+            /* 添加必要的样式 */
+        }
+        #voiceMode {
+            display: none;
+        }
+        /* 录音按钮样式 */
+        #voiceInputBtn {
+            margin: 5px;
+        }
+        /* 录音中指示器样式 */
+        #recordingIndicator {
+            color: red;
+        }
+
+        .hold-to-record {
+            background-color: #ff4d4f;
+            color: white;
+            border-radius: 20px;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .recordingIndicator {
+            display: none; /* 默认隐藏，录音时显示 */
+        }
+
+        .recordingIndicator.active {
+            display: block;
+            color: #ff4d4f;
+            text-align: center;
+        }
+    </style>
+    <link rel="stylesheet" href="/asset/css/style.css">
+    <title>群聊</title>
+</head>
+<body>
+<div class="chat-header">
+    <div class="back-arrow">&#x2190;</div>
+    <div class="chat-title">群聊名称</div>
+</div>
+<div class="chat-messages" id="chat-messages">
+    <!-- 聊天记录动态填充区域 -->
+</div>
+<div class="chat-input-area">
+    <input type="file" id="imageInput" hidden />
+    <button id="emojiBtn">😊</button>
+    <button id="imageBtn">📷</button>
+    <button id="toggleVoiceModeBtn">🎤</button>
+    <div id="voiceMode" class="input-mode" style="display: none;">
+        <button id="voiceInputBtn">按住说话</button>
+        <span id="recordingIndicator">录音中...</span>
+    </div>
+    <div id="textMode" class="input-mode">
+        <input type="text" id="messageInput" placeholder="输入消息...">
+        <button id="sendBtn">发送</button>
+        <!-- 其他文本输入相关按钮 -->
+    </div>
+</div>
+
+<script>
+
+    const userId = getUserIdFromURL();  // 此函数需要实现，从URL参数获取userId
+    const groupId = getGroupIdFromURL();  // 此函数需要实现，从URL参数获取groupId
+
+    // 聊天界面的功能核心代码
+    document.addEventListener('DOMContentLoaded', () => {
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const imageBtn = document.getElementById('imageBtn');
+        const imageInput = document.getElementById('imageInput');
+        const emojiBtn = document.getElementById('emojiBtn');
+        const voiceBtn = document.getElementById('voiceBtn');
+        const voiceButton = document.getElementById('voiceInputBtn');
+        const recordingIndicator = document.getElementById('recordingIndicator');
+
+        // 处理“长按录音”按钮的触摸事件
+        voiceButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();  // 阻止默认行为，如滚动
+            recordingIndicator.style.display = '';  // 显示录音指示器
+            startRecording();  // 开始录音
+        });
+
+        voiceButton.addEventListener('touchend', (e) => {
+            recordingIndicator.style.display = 'none';  // 隐藏录音指示器
+            stopRecording();  // 停止录音
+        });
+
+        // 处理长按事件（示例使用mousedown和mouseup事件来模拟）
+        let recording = false; // 记录是否正在录音
+        voiceButton.addEventListener('mousedown', startRecording);
+        voiceButton.addEventListener('mouseup', stopRecording);
+        voiceButton.addEventListener('mouseleave', stopRecording); // 当鼠标离开按钮时也停止录音
+
+
+
+        // 返回按钮的点击事件
+        document.querySelector('.back-arrow').addEventListener('click', () => {
+            window.history.back();
+        });
+
+        // 获取群聊名称并显示
+        groupName = decodeURIComponent(new URLSearchParams(window.location.search).get('groupName') || '群聊');
+        document.querySelector('.chat-title').textContent = groupName;
+
+        // 相关初始化代码，如WebSocket连接等...
+        initializeWebSocket()
+        // 发送文本消息
+        sendBtn.addEventListener('click', () => {
+            const content = messageInput.value.trim();
+            if(content) {
+                sendMessage(content,2, 1); // 假设的函数，发送消息
+                messageInput.value = ''; // 清空输入框
+            }
+        });
+
+        // 处理图片上传和发送
+        imageBtn.addEventListener('click', () => imageInput.click());
+        imageInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const formData = new FormData();
+                formData.append('file', file); // 确保这里的key与服务器端接收文件的字段相匹配
+
+                // 调用 uploadImage 函数并处理响应
+                uploadImage(formData).then(url => {
+                    // 使用返回的URL来发送图片消息
+                    sendMessage(url, 2, 3); // 假设 type: 2 = 群聊, media: 3 = 图片
+                }).catch(error => {
+                    console.error('图片上传失败:', error);
+                });
+            }
+        });
+
+        // 处理表情选择（假设emojiBtn触发某个表情选择器）
+        emojiBtn.addEventListener('click', () => {
+            // 实现表情选择器的逻辑，可能需要第三方库或自定义UI组件
+        });
+    });
+
+
+    // 添加"长按说话"按钮事件处理
+    const voiceInputButton = document.getElementById('voiceInputBtn');
+    voiceInputButton.addEventListener('mousedown', startRecording);
+    voiceInputButton.addEventListener('mouseup', stopRecording);
+    voiceInputButton.addEventListener('mouseleave', stopRecording);
+    voiceInputButton.addEventListener('touchstart', startRecording);
+    voiceInputButton.addEventListener('touchend', stopRecording);
+
+    function startRecording() {
+        recordingIndicator.style.display = 'block';  // 显示录音状态
+        recording = true;
+        audioChunks = []; // 重置音频片段容器
+        navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(stream => {
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data); // 收集录音数据
+                };
+                mediaRecorder.onstop = () => {
+                    recordingIndicator.style.display = 'none';  // 隐藏录音状态
+                    const audioBlob = new Blob(audioChunks);
+                    uploadAndSendAudio(audioBlob);  // 上传并发送录音
+                };
+                mediaRecorder.start();
+            })
+            .catch(error => {
+                console.error('无法启动录音:', error);
+                alert("录音权限被拒绝或您的设备不支持音频录制。");
+            });
+    }
+
+    function stopRecording() {
+        if (recording && mediaRecorder && mediaRecorder.state !== 'inactive') {
+            mediaRecorder.stop();
+            recording = false;
+        }
+    }
+
+    document.getElementById('toggleVoiceModeBtn').addEventListener('click', function() {
+        const textMode = document.getElementById('textMode');
+        const voiceMode = document.getElementById('voiceMode');
+        textMode.style.display = 'none';
+        voiceMode.style.display = 'block';
+    });
+
+    // 录音功能实现
+    let mediaRecorder;
+    let isRecording = false;
+    document.getElementById('voiceInputBtn').addEventListener('touchstart', startRecording);
+    document.getElementById('voiceInputBtn').addEventListener('touchend', stopRecording);
+
+    function startRecording() {
+        if (isRecording) return; // 如果已经在录音，则不做任何操作
+        navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(stream => {
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+                mediaRecorder.start();
+                isRecording = true;
+                document.getElementById('recordingIndicator').style.display = 'block';
+            })
+            .catch(error => {
+                console.error('无法启动录音:', error);
+            });
+    }
+
+    function stopRecording() {
+        if (!isRecording) return; // 如果没有在录音，则不做任何操作
+        mediaRecorder.stop();
+        isRecording = false;
+        document.getElementById('recordingIndicator').style.display = 'none';
+        handleRecordingStop();
+    }
+
+    let audioChunks = [];
+    function handleRecordingStop() {
+        // 停止录音后处理音频chunks
+        const audioBlob = new Blob(audioChunks, { type: 'audio/ogg; codecs=opus' });
+        // 上传音频文件
+        uploadAndSendAudio(audioBlob);
+    }
+
+
+
+
+
+    // 绑定长按说话按钮的事件
+    document.getElementById('voiceInputBtn').addEventListener('touchstart', startRecording);
+    document.getElementById('voiceInputBtn').addEventListener('touchend', stopRecording);
+
+
+
+    // 发送消息函数调整
+    function sendMessage(content, type, media) {
+        const message = {
+            TargetId: parseInt(groupId),
+            FormId: parseInt(userId),
+            Content: content,
+            Type: type,
+            Media: media,
+        };
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify(message));
+        }
+        // 显示自己发送的消息
+        displayMessage({...message, fromSelf: true});
+    }
+
+    // 假设的上传图片函数
+    // 上传图片函数改进
+    function uploadImage(formData) {
+        return fetch('/attach/upload', {
+            method: 'POST',
+            body: formData,
+        })
+            .then(response => response.json())
+            .then(data => {
+                if(data.url) {
+                    return data.url; // 返回上传图片的URL
+                } else {
+                    throw new Error('服务器未返回图片URL');
+                }
+            })
+            .catch(error => {
+                console.error('上传失败:', error);
+                throw error;
+            });
+    }
+
+    function uploadAndSendAudio(audioBlob) {
+        const formData = new FormData();
+        formData.append('audio', audioBlob);
+
+        fetch('/user/audioUploadHandler', { method: 'POST', body: formData })
+            .then(response => response.json())
+            .then(data => {
+                if (data.url) {
+                    sendMessage(data.url, 2, 4); // 假设 type: 2 = 群聊, media: 4 = 音频
+                } else {
+                    console.error("上传失败: 服务器未返回音频URL");
+                }
+            })
+            .catch(error => console.error('上传音频失败:', error));
+    }
+
+    // 给定一个消息对象，显示在聊天界面中
+    function displayMessage(message) {
+        const chatMessages = document.getElementById('chat-messages');
+        const messageContainer = document.createElement('div');
+        messageContainer.classList.add('message-container');
+
+        // 创建头像元素
+        const avatarImg = document.createElement('img');
+        avatarImg.src = getAvatarUrl(message.senderId); // 假设有一个函数获取用户头像URL
+        avatarImg.classList.add('contact-avatar');
+
+        // 创建消息内容元素
+        const contentDiv = document.createElement('div');
+        contentDiv.classList.add('message-content');
+        let contentHTML = '';
+        switch (message.Media) {
+            case 1:
+                contentHTML = message.Content;
+                break;
+            case 3: // 图片消息
+                const img = document.createElement('img');
+                img.src = message.Content; // 确保这里的Content是图片的完整URL
+                img.classList.add('chat-img');
+                img.onload = function() {
+                    messageContainer.appendChild(contentDiv);
+                    // 图片加载完成后添加到聊天界面中
+                    contentDiv.appendChild(img);
+                };
+                break;
+            case 4: // 语音消息
+                const audioElement = document.createElement('audio');
+                audioElement.controls = true;
+                audioElement.src = message.Content;
+                messageContentDiv.appendChild(audioElement);
+                break;
+            // 可根据需要添加其他类型处理...
+        }
+        contentDiv.innerHTML = contentHTML;
+
+        // 根据消息来源排序头像和消息内容
+        if(message.fromSelf) {
+            messageContainer.classList.add('my-message');
+            // 自己发的消息，头像放在右边
+            messageContainer.appendChild(contentDiv);
+            messageContainer.appendChild(avatarImg);
+        } else {
+            messageContainer.classList.add('friend-message');
+            // 接收到的消息，头像放在左边
+            messageContainer.appendChild(avatarImg);
+            messageContainer.appendChild(contentDiv);
+        }
+
+        chatMessages.appendChild(messageContainer);
+        chatMessages.scrollTop = chatMessages.scrollHeight; // 滚动到底部
+    }
+
+    // 获取头像URL的假设函数
+    function getAvatarUrl(userId) {
+        // 这里直接返回假设的头像URL。实际项目中，你可能需要根据实际存储的用户信息返回对应的头像URL。
+        return `/path/to/avatar/${userId}.png`; // 假设每个用户头像命名为 userId.png
+    }
+
+    function initializeWebSocket() {
+        const socketUrl = `ws://127.0.0.1:8081/groupChat?userId=${userId}&groupId=${groupId}`;
+        socket = new WebSocket(socketUrl);
+        socket.onopen = function() {
+            console.log('群聊WebSocket连接已打开');
+        };
+        socket.onmessage = function(event) {
+            // 收到消息
+            const message = JSON.parse(event.data);
+            if (message.FormId !== parseInt(userId)){
+                displayMessage(message);
+            }
+        };
+        socket.onerror = function(error) {
+            console.error('WebSocket发生错误:', error);
+        };
+        socket.onclose = function() {
+            console.log('WebSocket连接已关闭');
+        };
+    }
+
+    function getUserIdFromURL() {
+        const queryParams = new URLSearchParams(window.location.search);
+        return queryParams.get('userId');
+    }
+
+    function getGroupIdFromURL() {
+        const queryParams = new URLSearchParams(window.location.search);
+        return queryParams.get('groupId');
+    }
+
+
+</script>awd
+</body>
+</html>

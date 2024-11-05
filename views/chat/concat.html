@@ -1,0 +1,60 @@
+{{define "concat.html"}}
+<div class="contacts" id="contacts">
+    <!-- 动态填充好友列表 -->
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const userId = getUserIdFromURL(); // 获取userId
+        if (!userId) {
+            console.error('No userId found in URL.');
+            return;
+        }
+
+        const requestOptions = {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({userId: parseInt(userId)})
+        };
+
+        fetch('/user/searchFriends', requestOptions)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok.');
+                }
+                return response.json();
+            })
+            .then(data => {
+                const contactsContainer = document.getElementById('contacts');
+                contactsContainer.innerHTML = '';
+                if (data.Rows && data.Rows.length > 0) {
+                    data.Rows.forEach(friend => {
+                        const friendElement = document.createElement('div');
+                        friendElement.className = 'contact-item';
+                        friendElement.innerHTML = `
+                            <img src="/path/to/default-avatar.png" alt="${friend.Name}" class="contact-avatar">
+                            <div class="contact-data">
+                                <div class="contact-name">${friend.Name}</div>
+                            </div>
+                        `;
+                        // 修改这里：现在点击时还携带userId到聊天页面
+                        friendElement.addEventListener('click', () => {
+                            window.location.href = `/chatUI?userId=${userId}&friendId=${friend.ID}&friendName=${encodeURIComponent(friend.Name)}`;
+                        });
+                        contactsContainer.appendChild(friendElement);
+                    });
+                } else {
+                    contactsContainer.innerHTML = '<div>No friends found.</div>';
+                }
+            })
+            .catch(error => {
+                console.error('There has been a problem with your fetch operation:', error);
+            });
+    });
+
+    // 获取userId的函数不变
+    function getUserIdFromURL() {
+        const queryParams = new URLSearchParams(window.location.search);
+        return queryParams.get('userId');
+    }
+</script>
+{{end}}

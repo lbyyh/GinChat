@@ -1,0 +1,30 @@
+{{define "tabmenu.html"}}
+<link rel="stylesheet" href="/asset/css/style.css">
+<div class="bottom-nav">
+    <a href="#contacts" class="nav-item" onclick="switchTab('contacts')">
+        <i class="fas fa-user"></i><span>好友</span>
+    </a>
+    <a href="#groups" class="nav-item" onclick="switchTab('groups')">
+        <i class="fas fa-users"></i><span>群聊</span>
+    </a>
+    <a href="#profile" class="nav-item" onclick="switchTab('profile')">
+        <i class="fas fa-user-circle"></i><span>我的</span>
+    </a>
+</div>
+<script>
+    function switchTab(tabName) {
+        // 隐藏所有主要区块
+        document.getElementById('contacts').style.display = 'none';
+        document.getElementById('groups').style.display = 'none';
+        document.getElementById('profile').style.display = 'none';
+
+        // 显示选中的区块
+        document.getElementById(tabName).style.display = 'block';
+    }
+
+    // 页面加载时默认显示好友列表
+    window.onload = function() {
+        switchTab('contacts');
+    };
+</script>
+{{end}}

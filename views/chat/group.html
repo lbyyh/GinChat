@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="/asset/css/style.css">
+    <title>群列表</title>
+</head>
+<body>
+<div class="groups" id="groups"></div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        loadCommunity();
+    });
+
+    function loadCommunity() {
+        // 假设 userId 存储在本地或通过某种方式获得
+        const userId = getUserIdFromURL();
+
+        fetch('/contact/loadCommunity', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({userId: parseInt(userId)}),
+        })
+            .then(response => response.json())
+            .then(data => {
+                const groupsElement = document.getElementById("groups");
+                groupsElement.innerHTML = ''; // 清空当前群列表
+
+                data.Rows.forEach(group => {
+                    // 根据获取的群信息动态创建群列表项
+                    const groupElement = document.createElement("div");
+                    groupElement.className = 'group-item';
+                    groupElement.innerHTML = `
+                <img src="${group.Img}" alt="${group.Name}">
+                <div class="group-name">${group.Name}</div>
+                `;
+                    // 绑定点击事件，点击时跳转到聊天界面
+                    groupElement.addEventListener('click', () => {
+                        window.location.href = `/chatGroupUI?userId=${userId}&groupId=${group.ID}&groupName=${encodeURIComponent(group.Name)}`;
+                    });
+
+                    groupsElement.appendChild(groupElement);
+                });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert("加载群列表时发生错误，请稍后重试。");
+            });
+    }
+
+    function getUserIdFromURL() {
+        const queryParams = new URLSearchParams(window.location.search);
+        return queryParams.get('userId');
+    }
+</script>
+</body>
+</html>

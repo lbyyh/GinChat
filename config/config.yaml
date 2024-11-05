@@ -1,0 +1,21 @@
+mysql:
+  host: "127.0.0.1"
+  port: 3306
+  username: "root"
+  password: "rootroot"
+  database: "ginchat"
+
+redis:
+  addr: "192.168.30.96:6379"
+  password: ""
+  DB: 0
+  poolSize: 30
+  minIdleConn: 30
+
+  port:
+    server: ":8082"
+    udpIP: "192, 168, 56, 1"
+    udp: 3001
+
+mongodb:
+  uri: "mongodb://192.168.30.96:27017"

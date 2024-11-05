@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户注册</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .register-form {
+            width: 100%;
+            max-width: 400px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        input[type=text], input[type=password] {
+            width: 100%;
+            padding: 8px 16px;
+            margin: 8px 0;
+            display: inline-block;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            background-color: #4CAF50;
+            color: white;
+            padding: 14px 20px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+<div class="register-form">
+    <h2>用户注册</h2>
+    <label for="username">用户名:</label>
+    <input type="text" id="username" name="username" placeholder="用户名">
+
+    <label for="password">密码:</label>
+    <input type="password" id="password" name="password" placeholder="密码">
+
+    <label for="re-password">确认密码:</label>
+    <input type="password" id="re-password" name="re-password" placeholder="再次输入密码">
+
+    <button onclick="registerUser()">注册</button>
+</div>
+
+<script>
+    function registerUser() {
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const rePassword = document.getElementById('re-password').value;
+
+        if (password !== rePassword) {
+            alert('两次输入的密码不一致，请重新输入！');
+            return;
+        }
+
+        fetch('/user/createUser', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                name: username,
+                password: password,
+                RePassword: rePassword,
+            }),
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.code === 0) {
+                    alert('注册成功！');
+                    // 可以在此处添加跳转逻辑如登录页面等
+                    window.location.href = "/index";
+                } else {
+                    alert(`注册失败：${data.message}`);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('注册请求失败，请稍后再试！');
+            });
+    }
+</script>
+</body>
+</html>

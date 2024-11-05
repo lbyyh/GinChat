@@ -1,0 +1,311 @@
+/* 通用样式定义 */
+.chat-header, .chat-input-area, #sendBtn {
+    font-size: 16px;
+}
+
+/* 聊天页头部样式 */
+.chat-header {
+    text-align: center;
+    padding: 10px;
+    background-color: #1AAD19; /* 微信绿 */
+    color: white;
+}
+
+/* 聊天记录区域样式 */
+.chat-messages {
+    height: calc(100vh - 120px);
+    overflow-y: scroll;
+    background-color: #EDEDED;
+    margin-top: 30px;
+}
+
+/* 聊天输入区域样式 */
+.chat-input-area {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    padding: 5px 10px;
+    background-color: #f0f0f0;
+    border-top: 1px solid #ccc;
+}
+
+#emojiBtn, #imageBtn, #sendBtn {
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+#messageInput {
+    flex-grow: 0.8;
+    margin: 0 10px;
+    padding: 10px;
+    border-radius: 15px;
+    border: 1px solid #ccc;
+}
+
+#sendBtn {
+    background-color: #1AAD19; /* 微信绿 */
+    color: white;
+    border-radius: 15px;
+    padding: 10px 15px;
+}
+
+#sendBtn:hover {
+    background-color: #179B16; /* 鼠标悬停时的颜色变化 */
+}
+
+
+/* 头像样式 */
+.contact-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 20px;
+    margin-right: 10px;
+    vertical-align: middle;
+}
+
+/* 消息容器样式 */
+.message-container {
+    display: flex;
+    align-items: flex-end;
+    margin: 10px 0;
+}
+
+.my-message {
+    justify-content: flex-end;
+}
+
+.friend-message {
+    justify-content: flex-start;
+}
+
+.message-background {
+    padding: 5px 10px;
+    border-radius: 10px;
+    max-width: 80%;
+    margin: 5px;
+}
+
+.my-message .message-background {
+    background-color: #DCF8C6;
+}
+
+.friend-message .message-background {
+    background-color: #FFFFFF;
+}
+
+/* 调整按钮和图片按钮的样式 */
+#emojiBtn, #imageBtn {
+    margin: 0 5px;
+    font-size: 24px;
+}
+
+/* 美化消息容器样式 */
+.message-container {
+    margin-bottom: 10px; /* 增加消息行之间的间距 */
+    border-radius: 8px; /* 增加圆角边框 */
+    /*box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); !* 添加轻微的阴影 *!*/
+    padding: 8px; /* 增加内边距 */
+    /*max-width: 70%;*/
+    word-break: break-word; /* 防止文本溢出 */
+}
+
+/* 美化消息内容样式 */
+.message-content {
+    padding: 10px; /* 增加文本内边距 */
+    font-size: 16px; /* 调整字号 */
+    color: #333; /* 调整文本颜色 */
+    border-radius: 8px; /* 增加圆角边框 */
+}
+
+/* 添加消息时间戳样式 */
+.timestamp {
+    font-size: 12px;
+    color: #aaa;
+    margin-left: 5px; /* 与消息内容保持一定间距 */
+}
+
+/* 美化自己发送的消息容器 */
+.my-message .message-content {
+    background: linear-gradient(to right, #DCF8C6, #C4D9C4); /* 添加渐变背景 */
+    /* 其他样式保持不变 */
+}
+
+/* 美化对方发送的消息容器 */
+.friend-message .message-content {
+    background: linear-gradient(to right, #FFFFFF, #F0F0F0); /* 添加渐变背景 */
+    /* 其他样式保持不变 */
+}
+
+/* 调整头像样式 */
+.contact-avatar {
+    margin: 0 5px; /* 调整头像与消息内容的间距 */
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.2); /* 添加轻微的阴影 */
+}
+
+/* 图片消息样式 */
+.chat-img {
+    max-width: 100px; /* 根据需要调整 */
+    border-radius: 4px;
+}
+
+/* 更新聊天页头部样式以适应返回键 */
+.chat-header {
+    position: relative; /* 使返回键的绝对定位基于其父元素进行 */
+    text-align: center;
+    padding: 10px;
+    background-color: #1AAD19; /* 微信绿 */
+    color: white;
+    font-size: 16px;
+}
+/* 返回图标样式 */
+.back-arrow {
+    position: absolute;
+    left: 16px; /* 返回图标距离左边的位置 */
+    top: 50%;
+    transform: translateY(-50%);
+    color: white;
+    cursor: pointer;
+    font-size: 24px; /* 返回图标的大小 */
+}
+
+/* 聊天头部文本样式 */
+.chat-header span {
+    display: inline-block;
+    vertical-align: middle;
+}
+/* 聊天标题样式 */
+.chat-title {
+    display: inline-block; /* 或其他布局方式，视具体情况而定 */
+    color: white; /* 根据需要调整颜色 */
+    margin-left: 40px; /* 假设返回图标和标题之间的距离为40px */
+}
+
+.emoji-picker {
+    display: flex;
+    flex-wrap: wrap; /* 允许换行 */
+    padding: 10px;
+    background-color: #f0f0f0;
+    border-radius: 10px;
+    box-shadow: 0 0 5px rgba(0,0,0,0.2);
+    position: absolute;
+    bottom: 100%;
+    width: 100%;
+    overflow-y: auto;
+    max-height: 200px;
+    left: 0;
+    gap: 5px; /* 设置表情之间的间隙 */
+}
+
+.emoji {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    font-size: 24px; /* 根据实际情况调整字体大小 */
+}
+.extra-options {
+    display: flex;
+    justify-content: space-around;
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    background-color: #f0f0f0;
+    border-radius: 10px;
+    padding: 5px;
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+}
+/* 微信风格的语音按钮 */
+#voiceInputBtn {
+    font-size: 18px;
+    color: #1AAD19; /* 微信绿 */
+    background-color: transparent;
+    border: none;
+    padding: 5px;
+    margin: 0 5px;
+    cursor: pointer;
+}
+
+/* 按住说话按钮按下状态 */
+#voiceInputBtn.recording {
+    color: #ff0000;
+}
+
+/* 录音时长样式 */
+#recordingDuration {
+    font-size: 14px; /* 根据需要调整大小 */
+    margin-left: 5px; /* 与录音按钮的间距 */
+}
+
+/* 长按说话按钮样式 */
+#voiceInputBtn.hold-to-record {
+    font-size: 24px; /* 根据需要调整大小 */
+    color: #1AAD19; /* 微信绿 */
+    border: none;
+    background-color: transparent;
+    cursor: pointer;
+    padding: 5px;
+    margin: 0 5px;
+}
+
+#voiceInputBtn {
+    font-size: 18px;
+    color: #1AAD19; /* 微信绿 */
+    background-color: #fff; /* 背景色 */
+    border: 2px solid #1AAD19; /* 边框 */
+    border-radius: 20px; /* 圆角 */
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+#voiceInputBtn:active, #voiceInputBtn.recording {
+    color: #fff;
+    background-color: #1AAD19; /* 按下时的颜色 */
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.voice-message-duration {
+    font-size: 12px;
+    color: #fff;
+    position: absolute;
+    bottom: 5px;
+    left: 10px;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 2px 4px;
+    border-radius: 4px;
+}
+
+/* 已发送的语音消息样式 */
+.my-message .voice-message-card {
+    margin-right: auto;
+    background-color: #DCF8C6; /* 发送者语音消息背景色 */
+}
+
+/* 接收到的语音消息样式 */
+.friend-message .voice-message-card {
+    margin-left: auto;
+    background-color: #FFFFFF; /* 接收者语音消息背景色 */
+}
+
+/* 播放动画 */
+@keyframes playAnimation {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+/* 播放中的语音消息 */
+.voice-message-playing .voice-message-controls {
+    animation: playAnimation 0.5s linear infinite;
+}
